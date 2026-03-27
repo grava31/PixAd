@@ -883,7 +883,7 @@ function goTo(page, authMode) {
   const target = document.getElementById('page-'+page);
   if (target) { target.classList.add('active'); window.scrollTo(0,0); }
   if (page==='auth' && authMode) setAuthMode(authMode);
-  if (page==='plans') updatePlansUI();
+  if (page==='plans') { updatePlansUI(); initPayPal(); }
   if (page==='app')   updateAppUI();
 }
 
@@ -958,7 +958,6 @@ async function init() {
     }
   });
 
-  initPayPal();
   updateSum();
 }
 
@@ -1175,10 +1174,16 @@ function updateGenBtn() {
 }
 
 // ── PAYPAL ────────────────────────────────────────────────
+let ppRendered=false;
 function initPayPal() {
-  if (typeof paypal==='undefined'){setTimeout(initPayPal,800);return;}
+  if(ppRendered)return;
+  if(typeof paypal==='undefined'){setTimeout(initPayPal,800);return;}
+  // Only render when plans page is actually visible
+  const plansPage=document.getElementById('page-plans');
+  if(!plansPage||!plansPage.classList.contains('active')){return;}
+  ppRendered=true;
   function render(id, planId) {
-    const el=document.getElementById(id); if(!el)return;
+    const el=document.getElementById(id); if(!el||el.childElementCount>0)return;
     try {
       paypal.Buttons({
         style:{shape:'rect',color:'gold',layout:'vertical',label:'subscribe'},
