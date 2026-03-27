@@ -841,14 +841,14 @@ footer{text-align:center;padding:2.5rem 1rem;font-family:var(--mono);font-size:.
 // ║  ⚠️  PASTE YOUR SUPABASE CREDENTIALS HERE               ║
 // ║  Supabase Dashboard → Settings → API                    ║
 // ╚══════════════════════════════════════════════════════════╝
-const SUPABASE_URL  = 'https://rhebnlxbkianhmhcbmsu.supabase.co';  // ← REPLACE
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoZWJubHhia2lhbmhtaGNibXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0ODI5MjQsImV4cCI6MjA5MDA1ODkyNH0.M-kc9UK31j-ojkebXaTVhikgljl4RMSXgBlDjmzakwE';                     // ← REPLACE
+const SUPABASE_URL  = 'https://YOUR_PROJECT.supabase.co';  // ← REPLACE
+const SUPABASE_ANON = 'YOUR_ANON_KEY';                     // ← REPLACE
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ⚠️  YOUR SITE URL (fixes the 404 email redirect bug)   ║
 // ║  Must match exactly what's in Supabase URL settings     ║
 // ╚══════════════════════════════════════════════════════════╝
-const SITE_URL = 'https://pix-ad.vercel.app';  // ← REPLACE WITH YOUR REAL URL
+const SITE_URL = 'https://pixad-ai.vercel.app';  // ← REPLACE WITH YOUR REAL URL
 
 const {createClient} = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -883,7 +883,7 @@ function goTo(page, authMode) {
   const target = document.getElementById('page-'+page);
   if (target) { target.classList.add('active'); window.scrollTo(0,0); }
   if (page==='auth' && authMode) setAuthMode(authMode);
-  if (page==='plans') updatePlansUI();
+  if (page==='plans') { updatePlansUI(); renderPayPalButtons(); }
   if (page==='app')   updateAppUI();
 }
 
@@ -1175,23 +1175,44 @@ function updateGenBtn() {
 }
 
 // ── PAYPAL ────────────────────────────────────────────────
+let ppReady = false;
 function initPayPal() {
-  if (typeof paypal==='undefined'){setTimeout(initPayPal,800);return;}
+  if (typeof paypal==='undefined'){setTimeout(initPayPal,500);return;}
+  ppReady = true;
+  // Render immediately if plans page is already visible
+  if (document.getElementById('page-plans').classList.contains('active')) {
+    renderPayPalButtons();
+  }
+}
+
+function renderPayPalButtons() {
+  // Wait for SDK if not ready yet
+  if (!ppReady) { setTimeout(renderPayPalButtons, 500); return; }
+
+  // Helper: wipe container and re-draw button fresh
   function render(id, planId) {
-    const el=document.getElementById(id); if(!el)return;
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Clear old content so PayPal doesn't throw "container already rendered"
+    el.innerHTML = '';
+
     try {
       paypal.Buttons({
-        style:{shape:'rect',color:'gold',layout:'vertical',label:'subscribe'},
-        createSubscription:(d,a)=>a.subscription.create({plan_id:planId}),
-        onApprove:(d)=>{
-          alert('✓ Subscription activated!\n\nYour videos will appear shortly. If not visible in 10 seconds, refresh the page.');
+        style: {shape:'rect', color:'gold', layout:'vertical', label:'subscribe'},
+        createSubscription: (d, a) => a.subscription.create({plan_id: planId}),
+        onApprove: () => {
+          alert('✓ Subscription activated!\n\nYour videos will appear in a few seconds.\nIf not, refresh the page once.');
         },
-        onError:err=>console.error('PayPal error',err)
-      }).render('#'+id);
-    } catch(e){ if(el) el.innerHTML='<p style="font-family:var(--mono);font-size:.6rem;color:var(--text3);text-align:center;padding:.5rem;">PayPal loading...</p>'; }
+        onError: err => console.error('PayPal error', err)
+      }).render('#' + id);
+    } catch(e) {
+      el.innerHTML = '<p style="font-family:monospace;font-size:.65rem;color:#506070;text-align:center;padding:.6rem;">PayPal unavailable — try refreshing</p>';
+    }
   }
-  render('pp-starter','P-3E798644RY552135XNHB7LOQ');
-  render('pp-pro',    'P-8YK58417XS021451LNHB7MCY');
+
+  render('pp-starter', 'P-3E798644RY552135XNHB7LOQ');
+  render('pp-pro',     'P-8YK58417XS021451LNHB7MCY');
 }
 
 // ── CODE UNLOCK ───────────────────────────────────────────
