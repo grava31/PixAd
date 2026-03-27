@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixAd AI — Turn Product Photos Into Video Ads</title>
+<meta name="description" content="Upload one product photo and get professional video ads ready for TikTok, Instagram, YouTube in minutes.">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AZidexald6bsmunCaRrLbG7mu6DEpR6o5KgAfaAi1ubtIEPXnyrpRJt14ro4wL3a0TNH6nL1voWSUIkV&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
+<style>
+:root{
+  --bg:#080B0F;--bg2:#0D1117;--bg3:#131820;--bg4:#1A2130;
+  --border:#1E2A3A;--border2:#2A3A50;--border3:#3A5070;
+  --cyan:#00D4FF;--cyan-dim:rgba(0,212,255,0.08);--cyan-glow:rgba(0,212,255,0.15);--cyan-glow2:rgba(0,212,255,0.25);
+  --green:#00FF9D;--green-dim:rgba(0,255,157,0.08);
+  --amber:#FFB800;--amber-dim:rgba(255,184,0,0.08);
+  --red:#FF4060;--red-dim:rgba(255,64,96,0.08);
+  --text:#E8EEF4;--text2:#8A9BB0;--text3:#506070;
+  --mono:'Space Mono',monospace;--sans:'Space Grotesk',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);background-size:60px 60px;}
+
+/* ── LOADING ─────────────────────────────────────────────── */
+#loading-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;transition:opacity .4s;}
+#loading-screen.hide{opacity:0;pointer-events:none;}
+.load-logo{font-family:var(--mono);font-weight:700;font-size:1.6rem;letter-spacing:.1em;}
+.load-logo span{color:var(--cyan);}
+.load-dots{display:flex;gap:6px;}
+.load-dots i{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:bdot .9s infinite;display:block;}
+.load-dots i:nth-child(2){animation-delay:.15s;}
+.load-dots i:nth-child(3){animation-delay:.3s;}
+@keyframes bdot{0%,100%{opacity:.2;transform:translateY(0);}50%{opacity:1;transform:translateY(-5px);}}
+.load-txt{font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.18em;text-transform:uppercase;}
+
+/* ── SHARED NAV ──────────────────────────────────────────── */
+.topnav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;background:rgba(8,11,15,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.topnav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.35;}
+.nav-logo{font-family:var(--mono);font-weight:700;font-size:1.1rem;letter-spacing:.06em;color:var(--text);cursor:pointer;}
+.nav-logo span{color:var(--cyan);}
+.nav-logo sub{font-size:.45em;color:var(--cyan);opacity:.7;letter-spacing:.08em;}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.nav-signin-btn{font-family:var(--mono);font-size:.7rem;color:var(--text2);background:none;border:1px solid var(--border2);border-radius:5px;padding:7px 14px;cursor:pointer;letter-spacing:.05em;transition:all .15s;}
+.nav-signin-btn:hover{color:var(--cyan);border-color:var(--cyan);}
+.nav-start-btn{font-family:var(--mono);font-size:.7rem;font-weight:700;color:var(--bg);background:var(--cyan);border:none;border-radius:5px;padding:8px 16px;cursor:pointer;letter-spacing:.05em;transition:all .15s;}
+.nav-start-btn:hover{background:#33DDFF;box-shadow:0 0 18px var(--cyan-glow2);}
+/* logged-in nav extras */
+.nav-credits-pill{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 12px;font-family:var(--mono);font-size:.67rem;}
+.nc-dot{width:5px;height:5px;border-radius:50%;animation:pulse 2s infinite;}
+.nc-dot.green{background:var(--green);box-shadow:0 0 5px var(--green);}
+.nc-dot.red{background:var(--red);box-shadow:0 0 5px var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.nav-plan-tag{font-family:var(--mono);font-size:.62rem;border:1px solid var(--border2);border-radius:3px;padding:3px 8px;letter-spacing:.05em;}
+.npt-free{color:var(--cyan);border-color:rgba(0,212,255,.3);background:var(--cyan-dim);}
+.npt-starter{color:var(--amber);border-color:rgba(255,184,0,.3);background:var(--amber-dim);}
+.npt-pro{color:var(--green);border-color:rgba(0,255,157,.3);background:var(--green-dim);}
+.npt-none{color:var(--text3);}
+.nav-user-email{font-family:var(--mono);font-size:.6rem;color:var(--text3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nav-out-btn{font-family:var(--mono);font-size:.62rem;color:var(--text3);background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;cursor:pointer;transition:all .15s;}
+.nav-out-btn:hover{color:var(--red);border-color:var(--red);}
+
+/* ── PAGE CONTAINERS ─────────────────────────────────────── */
+.page{display:none;min-height:100vh;}
+.page.active{display:block;}
+
+/* ═══════════════════════════════════════════════════════════
+   LANDING PAGE
+═══════════════════════════════════════════════════════════ */
+#page-landing{padding-top:60px;}
+
+/* HERO */
+.lp-hero{max-width:860px;margin:0 auto;padding:6rem 1.5rem 4rem;text-align:center;position:relative;z-index:1;}
+.lp-kicker{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);border:1px solid var(--border2);background:var(--cyan-dim);padding:6px 14px;border-radius:4px;margin-bottom:2rem;}
+.lp-kicker::before{content:'>';color:var(--cyan);}
+.lp-hero h1{font-size:clamp(2.6rem,6vw,5rem);font-weight:700;line-height:1.03;letter-spacing:-.025em;margin-bottom:1.3rem;}
+.lp-hero h1 .hl{color:var(--cyan);position:relative;display:inline-block;}
+.lp-hero h1 .hl::after{content:'';position:absolute;bottom:-6px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),transparent);}
+.lp-hero p{font-size:1.08rem;color:var(--text2);line-height:1.75;max-width:540px;margin:0 auto 2.5rem;font-weight:300;}
+.lp-hero-btns{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+.btn-cta-big{font-family:var(--mono);font-size:.88rem;font-weight:700;color:var(--bg);background:var(--cyan);border:none;border-radius:7px;padding:15px 34px;cursor:pointer;letter-spacing:.06em;transition:all .2s;position:relative;overflow:hidden;}
+.btn-cta-big::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);transform:translateX(-100%);transition:transform .4s;}
+.btn-cta-big:hover::before{transform:translateX(100%);}
+.btn-cta-big:hover{box-shadow:0 0 35px var(--cyan-glow2);transform:translateY(-2px);}
+.btn-ghost-big{font-family:var(--mono);font-size:.82rem;color:var(--text2);background:none;border:1px solid var(--border2);border-radius:7px;padding:14px 24px;cursor:pointer;letter-spacing:.04em;transition:all .18s;}
+.btn-ghost-big:hover{border-color:var(--cyan);color:var(--cyan);}
+.lp-note{font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-top:.9rem;letter-spacing:.05em;}
+
+/* SOCIAL PROOF BAR */
+.proof-bar{display:flex;align-items:center;justify-content:center;gap:0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;z-index:1;overflow:hidden;}
+.proof-bar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--cyan-dim),transparent);pointer-events:none;}
+.proof-item{flex:1;text-align:center;padding:1.1rem .5rem;border-right:1px solid var(--border);}
+.proof-item:last-child{border-right:none;}
+.proof-n{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--cyan);display:block;}
+.proof-l{font-size:.64rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-family:var(--mono);}
+
+/* HOW IT WORKS */
+.how-section{max-width:980px;margin:0 auto;padding:5rem 1.5rem;position:relative;z-index:1;}
+.section-kicker{font-family:var(--mono);font-size:.62rem;color:var(--cyan);letter-spacing:.18em;text-transform:uppercase;text-align:center;margin-bottom:.7rem;}
+.section-title{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;letter-spacing:-.02em;text-align:center;margin-bottom:.6rem;}
+.section-sub{font-size:.9rem;color:var(--text2);text-align:center;font-weight:300;max-width:480px;margin:0 auto 3.5rem;line-height:1.7;}
+
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;}
+/* connector line */
+.steps-grid::before{content:'';position:absolute;top:52px;left:calc(12.5%);right:calc(12.5%);height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--cyan),transparent);opacity:.3;z-index:0;}
+
+.step-card{text-align:center;padding:0 1rem;position:relative;z-index:1;}
+.step-num-wrap{width:68px;height:68px;border-radius:14px;background:var(--bg2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;position:relative;transition:border-color .2s;}
+.step-card:hover .step-num-wrap{border-color:var(--cyan);box-shadow:0 0 20px var(--cyan-glow);}
+.step-num{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--cyan);}
+.step-emoji{font-size:1.5rem;}
+.step-title{font-size:.92rem;font-weight:700;margin-bottom:.4rem;letter-spacing:-.01em;}
+.step-desc{font-size:.77rem;color:var(--text2);line-height:1.6;font-weight:300;}
+
+/* PRODUCT SHOWCASE */
+.showcase-section{max-width:1100px;margin:0 auto;padding:3rem 1.5rem 5rem;position:relative;z-index:1;}
+.showcase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.showcase-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .2s;position:relative;}
+.showcase-card:hover{border-color:var(--border3);transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.3);}
+.showcase-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0;transition:opacity .2s;}
+.showcase-card:hover::before{opacity:.5;}
+/* Product photo placeholder — simulated studio shot */
+.sc-img{height:200px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.sc-img-inner{font-size:4rem;position:relative;z-index:1;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5));}
+.sc-glow{position:absolute;inset:0;opacity:.35;}
+.sc-label{padding:.9rem 1rem .8rem;display:flex;align-items:center;justify-content:space-between;}
+.sc-product{font-size:.82rem;font-weight:600;}
+.sc-tag{font-family:var(--mono);font-size:.58rem;padding:3px 8px;border-radius:3px;letter-spacing:.06em;}
+.sc-tag-done{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,157,.2);}
+.sc-motion{font-family:var(--mono);font-size:.6rem;color:var(--text3);padding:0 1rem .8rem;}
+
+/* BOTTOM CTA */
+.lp-bottom-cta{text-align:center;padding:5rem 1.5rem;position:relative;z-index:1;background:linear-gradient(180deg,transparent,var(--bg2));}
+.lp-bottom-cta h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.02em;margin-bottom:1rem;}
+.lp-bottom-cta p{font-size:.95rem;color:var(--text2);font-weight:300;margin-bottom:2.2rem;}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH PAGE
+═══════════════════════════════════════════════════════════ */
+#page-auth{padding-top:60px;min-height:100vh;display:none;align-items:center;justify-content:center;flex-direction:column;padding-bottom:3rem;}
+#page-auth.active{display:flex;}
+.auth-glow{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,0.05) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.auth-logo-wrap{text-align:center;margin-bottom:1.8rem;position:relative;z-index:1;}
+.auth-logo-txt{font-family:var(--mono);font-weight:700;font-size:1.4rem;letter-spacing:.08em;}
+.auth-logo-txt span{color:var(--cyan);}
+.auth-logo-sub{font-family:var(--mono);font-size:.56rem;color:var(--text3);letter-spacing:.2em;text-transform:uppercase;margin-top:3px;}
+.auth-card{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative;z-index:1;}
+.auth-card-top{height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.7;}
+.auth-body{padding:2rem;}
+.auth-mode-lbl{font-family:var(--mono);font-size:.57rem;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;margin-bottom:.35rem;}
+.auth-title{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.3rem;}
+.auth-subtitle{font-size:.8rem;color:var(--text2);font-weight:300;margin-bottom:1.6rem;line-height:1.5;}
+.auth-alert{padding:.75rem 1rem;border-radius:6px;font-family:var(--mono);font-size:.63rem;letter-spacing:.04em;margin-bottom:1rem;border:1px solid;display:none;}
+.auth-alert.err{background:var(--red-dim);border-color:rgba(255,64,96,.3);color:var(--red);}
+.auth-alert.ok{background:var(--green-dim);border-color:rgba(0,255,157,.3);color:var(--green);}
+.auth-field{margin-bottom:1rem;}
+.auth-field label{display:block;font-family:var(--mono);font-size:.56rem;color:var(--text3);letter-spacing:.13em;text-transform:uppercase;margin-bottom:.45rem;}
+.auth-field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:.88rem;padding:.72rem .9rem;outline:none;transition:border-color .2s;}
+.auth-field input:focus{border-color:var(--cyan);}
+.auth-field input::placeholder{color:var(--text3);}
+.auth-forgot-row{text-align:right;margin-top:.3rem;}
+.auth-forgot-row button{font-family:var(--mono);font-size:.58rem;color:var(--text3);background:none;border:none;cursor:pointer;letter-spacing:.06em;transition:color .15s;}
+.auth-forgot-row button:hover{color:var(--cyan);}
+.auth-submit{width:100%;padding:.9rem;border-radius:6px;border:none;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-top:.5rem;}
+.auth-submit:hover{background:#33DDFF;box-shadow:0 0 22px var(--cyan-glow2);}
+.auth-submit:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;box-shadow:none;}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:1.2rem 0;}
+.auth-divider hr{flex:1;border:none;border-top:1px solid var(--border);}
+.auth-divider span{font-family:var(--mono);font-size:.53rem;color:var(--text3);letter-spacing:.1em;}
+.auth-google-btn{width:100%;padding:.82rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--sans);font-size:.84rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .18s;}
+.auth-google-btn:hover{border-color:var(--border3);color:var(--text);}
+.auth-switch{text-align:center;margin-top:1.2rem;font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.05em;}
+.auth-switch button{color:var(--cyan);background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:.6rem;letter-spacing:.05em;text-decoration:underline;text-underline-offset:2px;}
+.auth-switch button:hover{color:#33DDFF;}
+.auth-card-foot{padding:.75rem;text-align:center;font-family:var(--mono);font-size:.53rem;color:var(--text3);letter-spacing:.07em;border-top:1px solid var(--border);}
+
+/* ═══════════════════════════════════════════════════════════
+   PLANS PAGE
+═══════════════════════════════════════════════════════════ */
+#page-plans{padding-top:60px;}
+.plans-hero{text-align:center;padding:4rem 1.5rem 3rem;max-width:680px;margin:0 auto;position:relative;z-index:1;}
+.plans-hero h2{font-size:clamp(1.8rem,4vw,3rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.7rem;}
+.plans-hero p{font-size:.9rem;color:var(--text2);font-weight:300;line-height:1.7;}
+.plans-wrap{max-width:980px;margin:0 auto;padding:0 1.25rem 5rem;position:relative;z-index:1;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:1.5rem;align-items:stretch;}
+.pcard{border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.2rem 1.3rem;background:var(--bg2);cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;}
+.pcard:hover{border-color:var(--border3);transform:translateY(-2px);}
+.pcard.sel{border-color:var(--cyan);background:var(--bg4);box-shadow:0 0 24px rgba(0,212,255,.07);}
+.pcard.sel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.pop-tag{position:absolute;top:-1px;right:16px;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:.56rem;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:0 0 6px 6px;}
+.pcard-head{display:flex;align-items:center;gap:10px;margin-bottom:.9rem;}
+.pcard-ico{width:38px;height:38px;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.pcard-name{font-size:.95rem;font-weight:700;letter-spacing:-.01em;}
+.pcard-tagline{font-size:.67rem;color:var(--text3);margin-top:1px;}
+.pcard-price{font-family:var(--mono);font-size:1.6rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.2rem;}
+.pcard-price span{font-size:.7rem;font-weight:400;color:var(--text3);}
+.pcard-hr{height:1px;background:var(--border);margin:.9rem 0;}
+.pf{font-size:.72rem;color:var(--text2);padding:3px 0;display:flex;align-items:flex-start;gap:7px;line-height:1.4;}
+.pf-icon{flex-shrink:0;margin-top:1px;font-size:.65rem;}
+.pf-on .pf-icon{color:var(--green);}
+.pf-gold .pf-icon{color:var(--amber);}
+.pf-off{color:var(--text3);}
+.pf-off .pf-icon{color:var(--text3);}
+.pcard-foot{margin-top:auto;padding-top:1.1rem;}
+.pp-wrap{min-height:52px;display:flex;flex-direction:column;justify-content:center;}
+.free-claim-btn{width:100%;padding:.85rem;border-radius:7px;border:none;background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,157,.2);font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.free-claim-btn:hover{background:rgba(0,255,157,.15);box-shadow:0 0 16px rgba(0,255,157,.1);}
+.free-claim-btn:disabled{opacity:.5;cursor:not-allowed;}
+.trial-used-msg{font-family:var(--mono);font-size:.62rem;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(255,184,0,.2);border-radius:6px;padding:.6rem .8rem;text-align:center;line-height:1.5;letter-spacing:.03em;}
+.already-link-row{text-align:center;margin-top:.8rem;}
+.already-link{font-family:var(--mono);font-size:.63rem;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px;letter-spacing:.04em;transition:color .15s;}
+.already-link:hover{color:var(--cyan);}
+.code-reveal{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:1rem;margin-top:.8rem;display:none;}
+.code-reveal-label{font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem;}
+.code-row{display:flex;gap:8px;}
+.code-inp{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:.8rem;padding:.6rem .9rem;outline:none;letter-spacing:.07em;transition:border-color .2s;}
+.code-inp:focus{border-color:var(--cyan);}
+.code-inp::placeholder{color:var(--text3);letter-spacing:0;font-size:.72rem;}
+.code-unlock-btn{background:var(--cyan);color:var(--bg);border:none;border-radius:5px;font-family:var(--mono);font-size:.68rem;font-weight:700;padding:.6rem 1rem;cursor:pointer;letter-spacing:.05em;white-space:nowrap;transition:all .15s;}
+.code-unlock-btn:hover{background:#33DDFF;}
+
+/* ═══════════════════════════════════════════════════════════
+   APP PAGE (GENERATOR)
+═══════════════════════════════════════════════════════════ */
+#page-app{padding-top:60px;}
+.app-inner{max-width:1000px;margin:0 auto;padding:2rem 1.25rem 6rem;position:relative;z-index:1;}
+/* plan banner */
+.plan-banner{border-radius:8px;padding:.78rem 1.1rem;font-family:var(--mono);font-size:.68rem;display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;border:1px solid;margin-bottom:1rem;letter-spacing:.03em;}
+.pb-free{background:var(--cyan-dim);border-color:rgba(0,212,255,.2);color:var(--cyan);}
+.pb-starter{background:var(--amber-dim);border-color:rgba(255,184,0,.2);color:var(--amber);}
+.pb-pro{background:var(--green-dim);border-color:rgba(0,255,157,.2);color:var(--green);}
+.empty-banner{background:var(--amber-dim);border:1px solid rgba(255,184,0,.2);border-radius:8px;padding:.75rem 1.1rem;font-family:var(--mono);font-size:.68rem;color:var(--amber);margin-bottom:1rem;display:none;letter-spacing:.03em;}
+.empty-banner a{color:var(--cyan);cursor:pointer;text-decoration:underline;}
+/* panel */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.6rem;margin-bottom:1rem;position:relative;overflow:hidden;transition:border-color .2s;}
+.panel:focus-within{border-color:var(--border3);}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0;transition:opacity .2s;}
+.panel:focus-within::before{opacity:.5;}
+.panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+.panel-label{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);}
+.step-tag{font-family:var(--mono);font-size:.6rem;color:var(--cyan);border:1px solid var(--border2);padding:3px 8px;border-radius:3px;letter-spacing:.08em;}
+.badge{font-family:var(--mono);font-size:.6rem;padding:4px 9px;border-radius:3px;letter-spacing:.06em;}
+.b-cyan{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,212,255,.2);}
+.b-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,255,157,.2);}
+.b-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,184,0,.2);}
+.b-dim{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+/* upload */
+.uzone{border:1px dashed var(--border2);border-radius:8px;padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);}
+.uzone:hover,.uzone.over{border-color:var(--cyan);background:var(--cyan-dim);}
+.uzone input{display:none;}
+.uico{width:48px;height:48px;border-radius:8px;background:var(--bg4);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto .9rem;font-size:1.2rem;}
+.uzone h3{font-size:.93rem;font-weight:600;margin-bottom:.3rem;}
+.uzone p{font-size:.75rem;color:var(--text3);font-family:var(--mono);}
+.uprev{display:none;position:relative;}
+.uprev img{width:100%;max-height:280px;object-fit:contain;border-radius:8px;background:var(--bg3);}
+.rmbtn{position:absolute;top:10px;right:10px;background:rgba(8,11,15,.85);border:1px solid var(--border2);border-radius:5px;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:.64rem;padding:5px 10px;transition:all .15s;}
+.rmbtn:hover{color:var(--red);border-color:var(--red);}
+/* prompt */
+.prow{display:flex;gap:8px;margin-bottom:8px;}
+.inp{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:.87rem;padding:.68rem .9rem;outline:none;transition:border-color .2s;}
+.inp:focus{border-color:var(--cyan);}
+.inp::placeholder{color:var(--text3);}
+.aibtn{flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--cyan);cursor:pointer;font-family:var(--mono);font-size:.66rem;font-weight:700;padding:0 14px;white-space:nowrap;transition:all .15s;height:40px;letter-spacing:.05em;}
+.aibtn:hover{background:var(--cyan-dim);border-color:var(--cyan);}
+.aibtn:disabled{opacity:.4;cursor:not-allowed;}
+textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:.87rem;padding:.72rem .9rem;outline:none;resize:vertical;min-height:75px;line-height:1.55;transition:border-color .2s;}
+textarea:focus{border-color:var(--cyan);}
+textarea::placeholder{color:var(--text3);}
+/* platform */
+.platrow{display:flex;gap:7px;flex-wrap:wrap;}
+.pchip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:.64rem;padding:7px 12px;transition:all .15s;letter-spacing:.04em;}
+.pchip:hover{border-color:var(--border2);color:var(--text2);}
+.pchip.on{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);}
+/* motions */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;}
+.mtile{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:.85rem .6rem;cursor:pointer;text-align:center;transition:all .18s;user-select:none;position:relative;}
+.mtile:hover{border-color:var(--border2);background:var(--bg4);}
+.mtile.on{border-color:var(--cyan);background:var(--cyan-dim);}
+.mchk{position:absolute;top:5px;right:6px;width:14px;height:14px;background:var(--cyan);border-radius:2px;display:none;align-items:center;justify-content:center;font-size:7px;color:var(--bg);font-weight:800;}
+.mtile.on .mchk{display:flex;}
+.mico{font-size:1.2rem;display:block;margin-bottom:.4rem;}
+.mn{font-size:.7rem;font-weight:600;color:var(--text);display:block;margin-bottom:2px;}
+.md{font-size:.63rem;color:var(--text3);line-height:1.3;}
+/* duration */
+.durrow{display:flex;gap:7px;margin-bottom:7px;}
+.dpill{flex:1;padding:.67rem;border-radius:6px;border:1px solid var(--border);background:var(--bg3);font-family:var(--mono);font-size:.7rem;color:var(--text3);cursor:pointer;text-align:center;transition:all .15s;}
+.dpill:hover{border-color:var(--border2);color:var(--text2);}
+.dpill.on{border-color:var(--cyan);background:var(--cyan-dim);color:var(--cyan);font-weight:700;}
+.dboth{width:100%;padding:.62rem;border-radius:6px;border:1px dashed var(--border2);background:none;font-family:var(--mono);font-size:.66rem;color:var(--text3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.dboth:hover,.dboth.on{border-color:var(--green);color:var(--green);background:var(--green-dim);border-style:solid;}
+/* settings */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.flbl{font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;}
+select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.75rem;padding:.67rem .9rem;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23506070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .2s;}
+select:focus{border-color:var(--cyan);}
+/* summary */
+.summary{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-around;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;position:relative;overflow:hidden;}
+.summary::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.5;}
+.sitem{text-align:center;}
+.sval{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--cyan);display:block;}
+.slbl{font-family:var(--mono);font-size:.57rem;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.sdiv{width:1px;height:26px;background:var(--border);}
+/* gen button */
+.genbtn{width:100%;padding:1.05rem;border-radius:8px;border:none;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:.83rem;font-weight:700;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;position:relative;overflow:hidden;}
+.genbtn:hover:not(:disabled){box-shadow:0 0 30px var(--cyan-glow2);}
+.genbtn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;border:1px solid var(--border);}
+.credits-note{text-align:center;font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:.5rem;letter-spacing:.04em;}
+/* progress */
+#status-section{display:none;}
+.prog-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-top:1rem;position:relative;overflow:hidden;}
+.prog-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.5;}
+.prog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.prog-title{font-family:var(--mono);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);}
+.prog-ct{font-family:var(--mono);font-size:.66rem;color:var(--cyan);}
+.trow{display:flex;align-items:center;gap:12px;padding:.78rem .9rem;background:var(--bg3);border:1px solid var(--border);border-radius:7px;margin-bottom:7px;}
+.tthumb{width:36px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--bg);}
+.tbody{flex:1;min-width:0;}
+.tname{font-family:var(--mono);font-size:.7rem;font-weight:700;margin-bottom:3px;color:var(--text2);}
+.tst{font-family:var(--mono);font-size:.63rem;color:var(--text3);}
+.tst.ok{color:var(--green);}
+.tst.err{color:var(--red);}
+.ptrack{height:2px;background:var(--border);border-radius:100px;overflow:hidden;margin-top:6px;}
+.pbar{height:100%;background:var(--cyan);border-radius:100px;width:0%;transition:width .5s ease;}
+.spin-r{width:16px;height:16px;flex-shrink:0;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.tick-c{width:18px;height:18px;flex-shrink:0;background:var(--green-dim);border:1px solid var(--green);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--green);}
+.cross-c{width:18px;height:18px;flex-shrink:0;background:var(--red-dim);border:1px solid var(--red);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--red);}
+/* results */
+#results-section{display:none;margin-top:2rem;}
+.res-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.res-title{font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+.res-title span{color:var(--cyan);}
+.btn-reset{background:none;border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:var(--mono);font-size:.63rem;padding:6px 12px;cursor:pointer;transition:all .15s;}
+.btn-reset:hover{color:var(--cyan);border-color:var(--cyan);}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.vcard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:all .2s;}
+.vcard:hover{border-color:var(--border3);}
+.vcard video{width:100%;display:block;background:var(--bg);max-height:230px;object-fit:contain;}
+.vfoot{padding:.78rem .9rem;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
+.vlbl{font-family:var(--mono);font-size:.7rem;font-weight:700;color:var(--text2);}
+.vmeta{font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:2px;}
+.dlbtn{background:var(--cyan);color:var(--bg);border:none;border-radius:5px;font-family:var(--mono);font-size:.64rem;font-weight:700;padding:6px 12px;cursor:pointer;text-decoration:none;display:inline-block;transition:all .15s;}
+.dlbtn:hover{background:#33DDFF;}
+.wm-tag{font-family:var(--mono);font-size:.56rem;color:var(--text3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;margin-left:4px;}
+/* upgrade modal */
+.overlay{position:fixed;inset:0;background:rgba(8,11,15,.88);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:2rem;max-width:400px;width:100%;position:relative;overflow:hidden;}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.modal h3{font-size:1.1rem;font-weight:700;margin-bottom:.5rem;}
+.modal p{font-size:.8rem;color:var(--text2);line-height:1.65;margin-bottom:1.3rem;font-weight:300;}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1rem;cursor:pointer;color:var(--text3);font-family:var(--mono);}
+footer{text-align:center;padding:2.5rem 1rem;font-family:var(--mono);font-size:.6rem;color:var(--text3);border-top:1px solid var(--border);letter-spacing:.06em;position:relative;z-index:1;}
+
+@media(max-width:700px){
+  .topnav{padding:0 1rem;}
+  .nav-user-email,.proof-bar .proof-item:nth-child(n+4){display:none;}
+  .steps-grid{grid-template-columns:1fr 1fr;}
+  .steps-grid::before{display:none;}
+  .showcase-grid,.plans-grid{grid-template-columns:1fr;}
+  .sgrid{grid-template-columns:1fr;}
+  .vgrid{grid-template-columns:1fr;}
+  .lp-hero{padding:4rem 1rem 3rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="load-logo">PIXAD<span>.</span>AI</div>
+  <div class="load-dots"><i></i><i></i><i></i></div>
+  <div class="load-txt">INITIALIZING...</div>
+</div>
+
+<!-- SHARED NAV -->
+<nav class="topnav">
+  <div class="nav-logo" onclick="goTo('landing')">PIXAD<span>.</span>AI<sub>v2</sub></div>
+
+  <!-- Guest nav -->
+  <div class="nav-actions" id="nav-guest">
+    <button class="nav-signin-btn" onclick="goTo('auth','login')">SIGN IN</button>
+    <button class="nav-start-btn" onclick="goTo('auth','signup')">GET STARTED FREE →</button>
+  </div>
+
+  <!-- Logged-in nav -->
+  <div class="nav-actions" id="nav-user" style="display:none;">
+    <div class="nav-credits-pill">
+      <div class="nc-dot red" id="nc-dot"></div>
+      <span id="nc-count" style="font-weight:700;color:var(--cyan);">0</span>
+      <span style="color:var(--text3);letter-spacing:.06em;">VIDEOS</span>
+    </div>
+    <div class="nav-plan-tag npt-none" id="nav-plan-tag">NO PLAN</div>
+    <span class="nav-user-email" id="nav-user-email"></span>
+    <button class="nav-out-btn" onclick="handleSignOut()">SIGN OUT</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ LANDING PAGE ═══════════════ -->
+<div id="page-landing" class="page active">
+
+  <!-- HERO -->
+  <div class="lp-hero">
+    <div class="lp-kicker">AI-POWERED VIDEO AD GENERATOR</div>
+    <h1>One photo.<br><span class="hl">Infinite video ads.</span></h1>
+    <p>Upload any product image and get professional video ads ready for TikTok, Instagram, YouTube and Facebook — in under 3 minutes. No design skills. No software.</p>
+    <div class="lp-hero-btns">
+      <button class="btn-cta-big" onclick="goTo('auth','signup')">✦ GET STARTED FOR FREE</button>
+      <button class="btn-ghost-big" onclick="goTo('plans')">VIEW PRICING</button>
+    </div>
+    <p class="lp-note">// 1 free video · no credit card · results in under 3 minutes</p>
+  </div>
+
+  <!-- PROOF -->
+  <div class="proof-bar">
+    <div class="proof-item"><span class="proof-n">14,000+</span><span class="proof-l">Videos Created</span></div>
+    <div class="proof-item"><span class="proof-n">5,200+</span><span class="proof-l">Active Sellers</span></div>
+    <div class="proof-item"><span class="proof-n">&lt;3 MIN</span><span class="proof-l">Average Time</span></div>
+    <div class="proof-item"><span class="proof-n">12</span><span class="proof-l">Motion Styles</span></div>
+    <div class="proof-item"><span class="proof-n">4.9 ★</span><span class="proof-l">User Rating</span></div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="how-section">
+    <div class="section-kicker">// HOW IT WORKS</div>
+    <h2 class="section-title">From photo to video ad in 4 steps</h2>
+    <p class="section-sub">No editing. No camera. No team. Just your product photo and PixAd AI.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num-wrap">
+          <span class="step-emoji">📸</span>
+        </div>
+        <div class="step-title">Upload Photo</div>
+        <div class="step-desc">Take a clear photo of your product — even on your phone. Studio background works best.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-wrap">
+          <span class="step-emoji">🎬</span>
+        </div>
+        <div class="step-title">Pick Motion Style</div>
+        <div class="step-desc">Choose from 12 cinematic motions — zoom, orbit, float, pan, spin and more. Pick multiple to compare.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-wrap">
+          <span class="step-emoji">⚡</span>
+        </div>
+        <div class="step-title">AI Generates</div>
+        <div class="step-desc">Our AI creates your video ads in 1–3 minutes. You get one video per motion style selected.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num-wrap">
+          <span class="step-emoji">📱</span>
+        </div>
+        <div class="step-title">Download & Post</div>
+        <div class="step-desc">Download your video ads in HD. Ready for TikTok, Instagram Reels, YouTube Shorts, Facebook.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCT SHOWCASE -->
+  <div class="showcase-section">
+    <div class="section-kicker">// EXAMPLE RESULTS</div>
+    <h2 class="section-title">Works for any product</h2>
+    <p class="section-sub">From beauty to fashion to electronics — if you can photograph it, PixAd AI can animate it.</p>
+
+    <div class="showcase-grid">
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#1a1a2e);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(200,100,255,0.3),transparent 70%)"></div>
+          <div class="sc-img-inner">💄</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Beauty & Skincare</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 2 MIN</span>
+        </div>
+        <div class="sc-motion">// Zoom In · Float · Orbit — 3 video variants</div>
+      </div>
+
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#1a2010);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(0,255,157,0.2),transparent 70%)"></div>
+          <div class="sc-img-inner">👟</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Footwear & Fashion</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 1 MIN</span>
+        </div>
+        <div class="sc-motion">// Pan Right · Push In · Spin — 3 video variants</div>
+      </div>
+
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#1a1510);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(255,184,0,0.2),transparent 70%)"></div>
+          <div class="sc-img-inner">⌚</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Watches & Jewelry</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 3 MIN</span>
+        </div>
+        <div class="sc-motion">// Orbit · Zoom Out · Subtle — 3 video variants</div>
+      </div>
+
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#101a1a);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(0,212,255,0.2),transparent 70%)"></div>
+          <div class="sc-img-inner">🎧</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Electronics & Tech</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 2 MIN</span>
+        </div>
+        <div class="sc-motion">// Float · Shake · Tilt Up — 3 video variants</div>
+      </div>
+
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#1a1015);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(255,64,96,0.2),transparent 70%)"></div>
+          <div class="sc-img-inner">👜</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Bags & Accessories</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 2 MIN</span>
+        </div>
+        <div class="sc-motion">// Pan Left · Zoom In · Orbit — 3 video variants</div>
+      </div>
+
+      <div class="showcase-card">
+        <div class="sc-img" style="background:linear-gradient(135deg,#0d1117,#151a10);">
+          <div class="sc-glow" style="background:radial-gradient(circle at 50% 60%,rgba(100,200,100,0.2),transparent 70%)"></div>
+          <div class="sc-img-inner">🧴</div>
+        </div>
+        <div class="sc-label">
+          <span class="sc-product">Food & Supplements</span>
+          <span class="sc-tag sc-tag-done">✓ DONE IN 1 MIN</span>
+        </div>
+        <div class="sc-motion">// Tilt Down · Float · Push In — 3 video variants</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CTA -->
+  <div class="lp-bottom-cta">
+    <h2>Ready to create your first video ad?</h2>
+    <p>Join 5,200+ sellers already using PixAd AI to grow their sales.<br>Start with 1 free video — no credit card required.</p>
+    <button class="btn-cta-big" onclick="goTo('auth','signup')">✦ GET STARTED FOR FREE</button>
+    <p class="lp-note" style="margin-top:.9rem;">// Free trial · No card · Cancel monthly plan anytime from PayPal</p>
+  </div>
+
+  <footer>© 2025 PIXAD.AI &nbsp;·&nbsp; Powered by Kling AI &nbsp;·&nbsp; Built for creators worldwide</footer>
+</div>
+
+<!-- ═══════════════════════════════ AUTH PAGE ═════════════════ -->
+<div id="page-auth" class="page">
+  <div class="auth-glow"></div>
+  <div class="auth-logo-wrap">
+    <div class="auth-logo-txt">PIXAD<span>.</span>AI</div>
+    <div class="auth-logo-sub">AI VIDEO AD GENERATOR</div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-card-top"></div>
+    <div class="auth-body">
+      <div class="auth-mode-lbl" id="auth-mode-lbl">// SIGN IN</div>
+      <div class="auth-title" id="auth-title">Welcome back</div>
+      <div class="auth-subtitle" id="auth-subtitle">Sign in to access your video credits.</div>
+      <div class="auth-alert" id="auth-alert"></div>
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="auth-field">
+          <label>EMAIL ADDRESS</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="auth-field" id="pw-wrap">
+          <label>PASSWORD</label>
+          <input type="password" id="auth-pw" placeholder="••••••••" autocomplete="current-password">
+          <div class="auth-forgot-row" id="forgot-row">
+            <button type="button" onclick="setAuthMode('forgot')">FORGOT PASSWORD?</button>
+          </div>
+        </div>
+        <button type="submit" class="auth-submit" id="auth-submit">SIGN IN →</button>
+      </form>
+      <div id="google-wrap">
+        <div class="auth-divider"><hr><span>OR</span><hr></div>
+        <button class="auth-google-btn" onclick="handleGoogle()">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+      <div class="auth-switch" id="auth-switch">
+        NO ACCOUNT? <button onclick="setAuthMode('signup')">SIGN UP FREE</button>
+      </div>
+    </div>
+    <div class="auth-card-foot">SECURED BY SUPABASE · YOUR DATA IS PRIVATE</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ PLANS PAGE ═══════════════ -->
+<div id="page-plans" class="page">
+  <div class="plans-hero">
+    <div class="section-kicker">// PRICING</div>
+    <h2>Choose your plan</h2>
+    <p>Start with 1 free video — no card needed. Upgrade to a monthly plan for HD quality, no watermarks, and commercial rights.</p>
+  </div>
+  <div class="plans-wrap">
+    <div class="plans-grid">
+
+      <!-- FREE -->
+      <div class="pcard sel" id="pc-free">
+        <div class="pcard-head">
+          <div class="pcard-ico">🎬</div>
+          <div><div class="pcard-name">Free Trial</div><div class="pcard-tagline">One time only</div></div>
+        </div>
+        <div class="pcard-price">$0 <span>/ 1 video</span></div>
+        <div class="pcard-hr"></div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>1 video total</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>All 12 motion styles</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>720p output</div>
+        <div class="pf pf-off"><span class="pf-icon">✕</span>Watermarked</div>
+        <div class="pf pf-off"><span class="pf-icon">✕</span>No commercial use</div>
+        <div class="pcard-foot">
+          <div id="free-btn-area">
+            <button class="free-claim-btn" id="claim-btn" onclick="claimFreeTrial()">✦ CLAIM FREE VIDEO →</button>
+          </div>
+          <div id="trial-used-msg" class="trial-used-msg" style="display:none;">
+            ⚠ FREE TRIAL ALREADY USED<br>
+            <span style="font-size:.6rem;color:var(--text2);">Subscribe below to continue.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STARTER -->
+      <div class="pcard" id="pc-starter">
+        <div class="pcard-head">
+          <div class="pcard-ico">🚀</div>
+          <div><div class="pcard-name">Starter</div><div class="pcard-tagline">For growing brands</div></div>
+        </div>
+        <div class="pcard-price">$15 <span>/ month</span></div>
+        <div class="pcard-hr"></div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>10 videos / month</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>All 12 motion styles</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>1080p HD output</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>No watermark</div>
+        <div class="pf pf-gold"><span class="pf-icon">★</span>Commercial rights</div>
+        <div class="pcard-foot">
+          <div id="pp-starter" class="pp-wrap"></div>
+        </div>
+      </div>
+
+      <!-- BUSINESS PRO -->
+      <div class="pcard" id="pc-pro">
+        <div class="pop-tag">BEST VALUE</div>
+        <div class="pcard-head">
+          <div class="pcard-ico">💎</div>
+          <div><div class="pcard-name">Business Pro</div><div class="pcard-tagline">For serious sellers</div></div>
+        </div>
+        <div class="pcard-price">$45 <span>/ month</span></div>
+        <div class="pcard-hr"></div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>40 videos / month</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>All 12 motion styles</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>1080p HD output</div>
+        <div class="pf pf-on"><span class="pf-icon">✓</span>No watermark</div>
+        <div class="pf pf-gold"><span class="pf-icon">★</span>Commercial rights</div>
+        <div class="pf pf-gold"><span class="pf-icon">★</span>Priority queue</div>
+        <div class="pf pf-gold"><span class="pf-icon">★</span>4K upscale</div>
+        <div class="pcard-foot">
+          <div id="pp-pro" class="pp-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="already-link-row">
+      <button class="already-link" onclick="toggleCodeBox()">// already subscribed? enter your activation code</button>
+      <div class="code-reveal" id="code-reveal">
+        <div class="code-reveal-label">ACTIVATION CODE</div>
+        <div class="code-row">
+          <input class="code-inp" type="text" id="code-inp" placeholder="PIXAD-XXXX-XXXX" oninput="this.value=this.value.toUpperCase()">
+          <button class="code-unlock-btn" onclick="unlockCode()">UNLOCK →</button>
+        </div>
+        <p style="font-family:var(--mono);font-size:.58rem;color:var(--text3);margin-top:.5rem;letter-spacing:.04em;">SENT BY EMAIL AFTER SUBSCRIBING VIA PAYPAL</p>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:1.2rem;letter-spacing:.06em;">CANCEL ANYTIME FROM PAYPAL · VIDEOS NEVER EXPIRE MID-CYCLE · SECURED BY PAYPAL</p>
+  </div>
+  <footer>© 2025 PIXAD.AI · Powered by Kling AI</footer>
+</div>
+
+<!-- ═══════════════════════════════ APP PAGE ═════════════════ -->
+<div id="page-app" class="page">
+  <div class="app-inner">
+
+    <div id="plan-banner"></div>
+    <div class="empty-banner" id="empty-banner">⚡ NO VIDEOS REMAINING — <a onclick="goTo('plans')">UPGRADE YOUR PLAN →</a></div>
+
+    <!-- STEP 1 -->
+    <div class="panel">
+      <div class="panel-top">
+        <div class="panel-label"><span class="step-tag">01</span>PRODUCT IMAGE</div>
+        <span class="badge b-dim">JPG · PNG · WEBP</span>
+      </div>
+      <div class="uzone" id="uzone">
+        <input type="file" id="fi" accept="image/jpeg,image/png,image/webp">
+        <div class="uico">📸</div>
+        <h3>Drop your product photo here</h3>
+        <p>// clean or white background gives sharpest results</p>
+      </div>
+      <div class="uprev" id="uprev">
+        <img id="previmg" src="" alt="">
+        <button class="rmbtn" onclick="removeImg()">[ REMOVE ]</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="panel">
+      <div class="panel-top">
+        <div class="panel-label"><span class="step-tag">02</span>AD DESCRIPTION</div>
+        <span class="badge b-cyan">✦ AI WRITES FOR YOU</span>
+      </div>
+      <div class="prow">
+        <input class="inp" type="text" id="pname" placeholder="Product name — e.g. Rose Glow Serum, Air Jordan 1">
+        <button class="aibtn" id="aibtn" onclick="genPrompt()">AI WRITE ✦</button>
+      </div>
+      <textarea id="prompt" placeholder="// describe the mood — e.g. 'luxury skincare, warm golden lighting, slow cinematic reveal'"></textarea>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="panel">
+      <div class="panel-top">
+        <div class="panel-label"><span class="step-tag">03</span>TARGET PLATFORM</div>
+        <span class="badge b-dim">AUTO-SETS FORMAT</span>
+      </div>
+      <div class="platrow">
+        <button class="pchip" onclick="preset('tiktok',this)">🎵 TIKTOK / REELS</button>
+        <button class="pchip" onclick="preset('youtube',this)">▶ YOUTUBE SHORTS</button>
+        <button class="pchip" onclick="preset('instagram',this)">◈ INSTAGRAM FEED</button>
+        <button class="pchip" onclick="preset('facebook',this)">⬡ FACEBOOK AD</button>
+        <button class="pchip" onclick="preset('custom',this)">⚙ CUSTOM</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="panel">
+      <div class="panel-top">
+        <div class="panel-label"><span class="step-tag">04</span>MOTION STYLES</div>
+        <span class="badge b-green" id="mbadge">NONE SELECTED</span>
+      </div>
+      <p style="font-family:var(--mono);font-size:.64rem;color:var(--text3);margin-bottom:1rem;letter-spacing:.03em;line-height:1.6;">// pick multiple — each becomes a separate video — compare and keep the winner<span id="free-note" style="color:var(--amber);display:none;"> · free trial: max 1</span></p>
+      <div class="mgrid" id="mgrid"></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="panel">
+      <div class="panel-top">
+        <div class="panel-label"><span class="step-tag">05</span>OUTPUT SETTINGS</div>
+        <span class="badge b-dim" id="q-badge">STD · 720P</span>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <div class="flbl" style="margin-bottom:6px;">DURATION</div>
+        <div class="durrow">
+          <button class="dpill" data-v="5" onclick="selDur(this)">5 SEC</button>
+          <button class="dpill on" data-v="10" onclick="selDur(this)">10 SEC</button>
+        </div>
+        <button class="dboth" id="dboth" onclick="togBoth()">⚡ BOTH 5S + 10S — IDEAL FOR A/B TESTING</button>
+      </div>
+      <div class="sgrid">
+        <div class="field">
+          <div class="flbl">ASPECT RATIO</div>
+          <select id="aspect" onchange="updateSum()">
+            <option value="9:16">9:16 — VERTICAL</option>
+            <option value="16:9" selected>16:9 — LANDSCAPE</option>
+            <option value="1:1">1:1 — SQUARE</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="flbl">RESOLUTION</div>
+          <select id="res-sel" disabled>
+            <option id="res-opt">720P — STANDARD</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY + GENERATE -->
+    <div class="summary">
+      <div class="sitem"><span class="sval" id="sv">0</span><span class="slbl">VIDEOS</span></div>
+      <div class="sdiv"></div>
+      <div class="sitem"><span class="sval" id="sm">0</span><span class="slbl">MOTIONS</span></div>
+      <div class="sdiv"></div>
+      <div class="sitem"><span class="sval" id="sd">10S</span><span class="slbl">DURATION</span></div>
+      <div class="sdiv"></div>
+      <div class="sitem"><span class="sval" id="sr">16:9</span><span class="slbl">FORMAT</span></div>
+      <div class="sdiv"></div>
+      <div class="sitem"><span class="sval" id="sq">720P</span><span class="slbl">QUALITY</span></div>
+    </div>
+
+    <button class="genbtn" id="genbtn" onclick="generate()">⚡ GENERATE VIDEO ADS</button>
+    <div class="credits-note" id="credits-note"></div>
+
+    <div id="status-section">
+      <div class="prog-panel">
+        <div class="prog-head">
+          <div class="prog-title">// GENERATING ADS</div>
+          <div class="prog-ct" id="prog-ct">0 / 0</div>
+        </div>
+        <div id="bprog"></div>
+      </div>
+    </div>
+
+    <div id="results-section">
+      <div class="res-head">
+        <div class="res-title">// <span id="res-count">0</span> ADS READY</div>
+        <button class="btn-reset" onclick="resetGen()">[ NEW BATCH ]</button>
+      </div>
+      <div class="vgrid" id="vgrid"></div>
+    </div>
+
+  </div>
+  <footer>© 2025 PIXAD.AI · Powered by Kling AI · Built for creators worldwide</footer>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="overlay" id="up-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">[ ✕ ]</button>
+    <h3>Upgrade to unlock more</h3>
+    <p>Your free trial has been used. Subscribe to a monthly plan for HD quality, no watermarks, and commercial rights.</p>
+    <button class="genbtn" style="font-size:.75rem;" onclick="closeModal();goTo('plans')">VIEW PLANS →</button>
+  </div>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ⚠️  PASTE YOUR SUPABASE CREDENTIALS HERE               ║
+// ║  Supabase Dashboard → Settings → API                    ║
+// ╚══════════════════════════════════════════════════════════╝
+const SUPABASE_URL  = 'https://rhebnlxbkianhmhcbmsu.supabase.co';  // ← REPLACE
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoZWJubHhia2lhbmhtaGNibXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0ODI5MjQsImV4cCI6MjA5MDA1ODkyNH0.M-kc9UK31j-ojkebXaTVhikgljl4RMSXgBlDjmzakwE';                     // ← REPLACE
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ⚠️  YOUR SITE URL (fixes the 404 email redirect bug)   ║
+// ║  Must match exactly what's in Supabase URL settings     ║
+// ╚══════════════════════════════════════════════════════════╝
+const SITE_URL = 'https://pix-ad.vercel.app';  // ← REPLACE WITH YOUR REAL URL
+
+const {createClient} = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── STATE ─────────────────────────────────────────────────
+let currentUser=null, userCredits=0, userPlan='none', userTrialUsed=false, rtChannel=null;
+const PLANS={
+  free:   {name:'FREE TRIAL',   vids:1,  res:'720p', wm:true},
+  starter:{name:'STARTER',      vids:10, res:'1080p',wm:false},
+  pro:    {name:'BUSINESS PRO', vids:40, res:'1080p',wm:false},
+};
+const MOTIONS=[
+  {id:'zoom_in', icon:'🔍',name:'Zoom In',  desc:'Toward product', cam:{type:'zoom',zoom:{direction:'in',value:5}}},
+  {id:'zoom_out',icon:'🔭',name:'Zoom Out', desc:'Pullback reveal', cam:{type:'zoom',zoom:{direction:'out',value:5}}},
+  {id:'pan_left',icon:'⬅',name:'Pan Left', desc:'Sweep left',      cam:{type:'pan',pan:{direction:'left',value:5}}},
+  {id:'pan_right',icon:'➡',name:'Pan Right',desc:'Sweep right',    cam:{type:'pan',pan:{direction:'right',value:5}}},
+  {id:'tilt_up', icon:'⬆',name:'Tilt Up',  desc:'Upward reveal',  cam:{type:'tilt',tilt:{direction:'up',value:5}}},
+  {id:'tilt_down',icon:'⬇',name:'Tilt Down',desc:'Downward sweep', cam:{type:'tilt',tilt:{direction:'down',value:5}}},
+  {id:'orbit',   icon:'🌀',name:'Orbit',    desc:'360° arc',        cam:{type:'orbit',orbit:{direction:'cw',value:5}}},
+  {id:'float',   icon:'✨',name:'Float',    desc:'Levitation',      cam:null},
+  {id:'shake',   icon:'⚡',name:'Shake',    desc:'High energy',     cam:null},
+  {id:'push_in', icon:'🎯',name:'Push In',  desc:'Cinematic dolly', cam:{type:'push',push:{direction:'forward',value:5}}},
+  {id:'subtle',  icon:'◎',name:'Subtle',   desc:'Minimal drift',   cam:null},
+  {id:'spin',    icon:'🎡',name:'Spin',     desc:'Full spin',       cam:{type:'orbit',orbit:{direction:'cw',value:8}}},
+];
+const PSETS={tiktok:{aspect:'9:16',dur:10},youtube:{aspect:'9:16',dur:10},instagram:{aspect:'1:1',dur:5},facebook:{aspect:'16:9',dur:10}};
+let sel=new Set(),img64=null,imgSrc=null,both=false,dur=10,tasks=[];
+
+// ── PAGE ROUTER ───────────────────────────────────────────
+function goTo(page, authMode) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const target = document.getElementById('page-'+page);
+  if (target) { target.classList.add('active'); window.scrollTo(0,0); }
+  if (page==='auth' && authMode) setAuthMode(authMode);
+  if (page==='plans') updatePlansUI();
+  if (page==='app')   updateAppUI();
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init() {
+  // Build motion grid
+  document.getElementById('mgrid').innerHTML = MOTIONS.map(m=>`
+    <div class="mtile" data-id="${m.id}" onclick="togM('${m.id}',this)">
+      <div class="mchk">✓</div>
+      <span class="mico">${m.icon}</span>
+      <span class="mn">${m.name}</span>
+      <span class="md">${m.desc}</span>
+    </div>`).join('');
+
+  // ── FIX: Handle Supabase email confirmation redirect ────
+  // When Supabase sends a confirmation email, the link contains
+  // #access_token=... in the URL. We need to detect and handle this.
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token')) {
+    // Parse the token from the URL hash
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const type         = params.get('type');
+
+    if (accessToken && refreshToken) {
+      try {
+        const { data, error } = await sb.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!error && data.session) {
+          // Clean the URL so the token doesn't stay visible
+          window.history.replaceState({}, document.title, window.location.pathname);
+          currentUser = data.session.user;
+          await onLoggedIn(currentUser);
+          hideLoading();
+          if (type === 'recovery') {
+            goTo('auth', 'reset');
+          } else {
+            goTo('plans');
+          }
+          return;
+        }
+      } catch(e) { console.error('Token parse error:', e); }
+    }
+    // Clean URL regardless
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Check existing session
+  const {data:{session}} = await sb.auth.getSession();
+  hideLoading();
+  if (session?.user) {
+    currentUser = session.user;
+    await onLoggedIn(currentUser);
+    goTo('app');
+  } else {
+    goTo('landing');
+  }
+
+  // Listen for auth changes
+  sb.auth.onAuthStateChange(async (_event, session) => {
+    if (session?.user && !currentUser) {
+      currentUser = session.user;
+      await onLoggedIn(currentUser);
+      goTo('plans');
+    } else if (!session) {
+      currentUser = null;
+      showGuestNav();
+      goTo('landing');
+    }
+  });
+
+  initPayPal();
+  updateSum();
+}
+
+function hideLoading() {
+  const ls = document.getElementById('loading-screen');
+  ls.classList.add('hide');
+  setTimeout(()=>ls.style.display='none', 400);
+}
+
+async function onLoggedIn(user) {
+  showUserNav(user);
+  await fetchCredits(user.email);
+  subscribeRealtime(user.email);
+}
+
+function showGuestNav() {
+  document.getElementById('nav-guest').style.display = 'flex';
+  document.getElementById('nav-user').style.display  = 'none';
+}
+function showUserNav(user) {
+  document.getElementById('nav-guest').style.display = 'none';
+  document.getElementById('nav-user').style.display  = 'flex';
+  document.getElementById('nav-user-email').textContent = user.email;
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+let authMode = 'login';
+function setAuthMode(mode) {
+  authMode = mode;
+  const M = {
+    login:  {lbl:'// SIGN IN',        title:'Welcome back',          sub:'Sign in to access your video credits.',              btn:'SIGN IN →',        sw:'NO ACCOUNT? <button onclick="setAuthMode(\'signup\')">SIGN UP FREE</button>'},
+    signup: {lbl:'// CREATE ACCOUNT', title:'Start creating ads',    sub:'Free trial — 1 video included, no card needed.',     btn:'CREATE ACCOUNT →', sw:'HAVE AN ACCOUNT? <button onclick="setAuthMode(\'login\')">SIGN IN</button>'},
+    forgot: {lbl:'// RESET PASSWORD', title:'Forgot your password?', sub:'Enter your email and we\'ll send a reset link.',     btn:'SEND RESET LINK →',sw:'<button onclick="setAuthMode(\'login\')">← BACK TO SIGN IN</button>'},
+  };
+  const m = M[mode];
+  document.getElementById('auth-mode-lbl').textContent  = m.lbl;
+  document.getElementById('auth-title').textContent     = m.title;
+  document.getElementById('auth-subtitle').textContent  = m.sub;
+  document.getElementById('auth-submit').textContent    = m.btn;
+  document.getElementById('auth-switch').innerHTML      = m.sw;
+  document.getElementById('pw-wrap').style.display      = mode==='forgot'?'none':'block';
+  document.getElementById('forgot-row').style.display   = mode==='login'?'block':'none';
+  document.getElementById('google-wrap').style.display  = mode==='forgot'?'none':'block';
+  document.getElementById('auth-pw').required           = mode!=='forgot';
+  document.getElementById('auth-pw').minLength          = mode==='signup'?8:0;
+  clearAlert();
+}
+
+function showAlert(type, text) {
+  const el = document.getElementById('auth-alert');
+  el.className = 'auth-alert '+(type==='err'?'err':'ok');
+  el.textContent = (type==='err'?'✕ ':'✓ ')+text;
+  el.style.display = 'block';
+}
+function clearAlert() { document.getElementById('auth-alert').style.display='none'; }
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value.trim();
+  const pw    = document.getElementById('auth-pw').value;
+  const btn   = document.getElementById('auth-submit');
+  btn.disabled=true; btn.textContent='PROCESSING...'; clearAlert();
+
+  if (authMode==='login') {
+    const {error} = await sb.auth.signInWithPassword({email,password:pw});
+    if (error) showAlert('err', error.message);
+    // On success onAuthStateChange fires and redirects
+
+  } else if (authMode==='signup') {
+    const {data,error} = await sb.auth.signUp({
+      email, password:pw,
+      options:{
+        // ── FIX: This must match your actual deployed URL ──
+        emailRedirectTo: SITE_URL,
+      }
+    });
+    if (error) {
+      showAlert('err', error.message);
+    } else if (data?.user?.identities?.length===0) {
+      showAlert('err','This email is already registered. Please sign in.');
+    } else {
+      showAlert('ok','Account created! Check your email to confirm — then sign in here.');
+    }
+
+  } else if (authMode==='forgot') {
+    const {error} = await sb.auth.resetPasswordForEmail(email,{
+      redirectTo: SITE_URL,
+    });
+    if (error) showAlert('err', error.message);
+    else showAlert('ok','Reset link sent! Check your inbox.');
+  }
+
+  btn.disabled=false;
+  btn.textContent = authMode==='login'?'SIGN IN →':authMode==='signup'?'CREATE ACCOUNT →':'SEND RESET LINK →';
+}
+
+async function handleGoogle() {
+  clearAlert();
+  const {error} = await sb.auth.signInWithOAuth({
+    provider:'google',
+    options:{redirectTo: SITE_URL}
+  });
+  if (error) showAlert('err', error.message);
+}
+
+async function handleSignOut() {
+  if (rtChannel) sb.removeChannel(rtChannel);
+  await sb.auth.signOut();
+  currentUser=null; userCredits=0; userPlan='none'; userTrialUsed=false;
+  showGuestNav();
+  goTo('landing');
+}
+
+// ── CREDITS ───────────────────────────────────────────────
+async function fetchCredits(email) {
+  const {data,error} = await sb.from('user_credits').select('credits,plan,trial_used').eq('email',email).single();
+  if (error) { if(error.code==='PGRST116'){userCredits=0;userPlan='none';userTrialUsed=false;} return; }
+  userCredits=data.credits??0; userPlan=data.plan??'none'; userTrialUsed=data.trial_used??false;
+  updateNavCredits(); updatePlansUI(); updateAppUI();
+}
+
+function subscribeRealtime(email) {
+  if (rtChannel) sb.removeChannel(rtChannel);
+  rtChannel = sb.channel('credits:'+email)
+    .on('postgres_changes',{event:'*',schema:'public',table:'user_credits',filter:'email=eq.'+email},
+      payload => {
+        const r=payload.new; if(!r) return;
+        userCredits=r.credits??0; userPlan=r.plan??'none'; userTrialUsed=r.trial_used??false;
+        updateNavCredits(); updatePlansUI(); updateAppUI();
+        if(userPlan!=='none'&&userCredits>0) goTo('app');
+      })
+    .subscribe();
+}
+
+function updateNavCredits() {
+  document.getElementById('nc-count').textContent = userCredits;
+  const dot = document.getElementById('nc-dot');
+  dot.className = 'nc-dot '+(userCredits>0?'green':'red');
+  const tag = document.getElementById('nav-plan-tag');
+  const LABELS={free:'FREE TRIAL',starter:'STARTER',pro:'BUSINESS PRO',none:'NO PLAN'};
+  const CLASSES={free:'npt-free',starter:'npt-starter',pro:'npt-pro',none:'npt-none'};
+  tag.textContent=LABELS[userPlan]??'NO PLAN';
+  tag.className='nav-plan-tag '+(CLASSES[userPlan]??'npt-none');
+}
+
+async function claimFreeTrial() {
+  if (!currentUser) { goTo('auth','signup'); return; }
+  if (userTrialUsed) return;
+  const btn=document.getElementById('claim-btn');
+  btn.disabled=true; btn.textContent='ACTIVATING...';
+  const {error} = await sb.from('user_credits').upsert({
+    email:currentUser.email, credits:1, plan:'free', trial_used:true, updated_at:new Date().toISOString()
+  },{onConflict:'email'});
+  if (error) { alert('Error: '+error.message); btn.disabled=false; btn.textContent='✦ CLAIM FREE VIDEO →'; return; }
+  userCredits=1; userPlan='free'; userTrialUsed=true;
+  updateNavCredits(); updatePlansUI();
+  goTo('app');
+}
+
+async function deductCredits(amount) {
+  if (userCredits<amount) return false;
+  const {error} = await sb.from('user_credits').update({credits:userCredits-amount,updated_at:new Date().toISOString()}).eq('email',currentUser.email);
+  if (error) return false;
+  userCredits-=amount; updateNavCredits(); return true;
+}
+
+function updatePlansUI() {
+  // Free trial button
+  const freeArea = document.getElementById('free-btn-area');
+  const usedMsg  = document.getElementById('trial-used-msg');
+  if (userTrialUsed) { freeArea.style.display='none'; usedMsg.style.display='block'; }
+  else               { freeArea.style.display='block';usedMsg.style.display='none';  }
+}
+
+function updateAppUI() {
+  // Plan banner
+  const b = document.getElementById('plan-banner');
+  if (userPlan!=='none') {
+    const cls={free:'pb-free',starter:'pb-starter',pro:'pb-pro'}[userPlan];
+    const msg={
+      free:`// FREE TRIAL ACTIVE — 1 video · 720p · watermarked`,
+      starter:`// STARTER ACTIVE — ${userCredits} videos remaining this month · 1080p HD`,
+      pro:`// BUSINESS PRO ACTIVE — ${userCredits} videos remaining · 1080p + 4K`,
+    }[userPlan];
+    b.innerHTML=`<div class="plan-banner ${cls}"><span>${msg}</span><span>${userCredits} VIDEO${userCredits!==1?'S':''} LEFT</span></div>`;
+  }
+  // Empty banner
+  document.getElementById('empty-banner').style.display = (userPlan!=='none'&&userCredits<=0)?'block':'none';
+  // Free note
+  document.getElementById('free-note').style.display = userPlan==='free'?'inline':'none';
+  // Quality badge
+  const qb=document.getElementById('q-badge');
+  qb.textContent=userPlan==='pro'?'PRO·1080P+4K':userPlan==='starter'?'PRO·1080P':'STD·720P';
+  qb.className='badge '+(userPlan==='pro'?'b-green':userPlan==='starter'?'b-cyan':'b-dim');
+  const ro=document.getElementById('res-opt');
+  if(ro) ro.textContent=userPlan==='pro'?'1080P + 4K UPSCALE':userPlan==='starter'?'1080P HD':'720P — STANDARD';
+  document.getElementById('sq').textContent=userPlan==='pro'?'1080P+4K':userPlan==='starter'?'1080P':'720P';
+  // Credits note
+  const cn=document.getElementById('credits-note');
+  if(cn) {
+    if(userPlan==='none') cn.textContent='';
+    else if(userCredits<=0){cn.style.color='var(--red)';cn.textContent='// NO VIDEOS REMAINING — UPGRADE TO CONTINUE';}
+    else if(userCredits<=3){cn.style.color='var(--amber)';cn.textContent=`// ⚠ LOW BALANCE — ${userCredits} VIDEO${userCredits!==1?'S':''} LEFT`;}
+    else{cn.style.color='var(--text3)';cn.textContent=`// ${userCredits} VIDEO${userCredits!==1?'S':''} REMAINING THIS CYCLE`;}
+  }
+  updateGenBtn();
+}
+
+function updateGenBtn() {
+  const btn=document.getElementById('genbtn');if(!btn)return;
+  const noC=userCredits<=0, noP=userPlan==='none';
+  btn.disabled=noC||noP;
+  btn.textContent=noP?'CHOOSE A PLAN FIRST':noC?'NO VIDEOS REMAINING':'⚡ GENERATE VIDEO ADS';
+}
+
+// ── PAYPAL ────────────────────────────────────────────────
+function initPayPal() {
+  if (typeof paypal==='undefined'){setTimeout(initPayPal,800);return;}
+  function render(id, planId) {
+    const el=document.getElementById(id); if(!el)return;
+    try {
+      paypal.Buttons({
+        style:{shape:'rect',color:'gold',layout:'vertical',label:'subscribe'},
+        createSubscription:(d,a)=>a.subscription.create({plan_id:planId}),
+        onApprove:(d)=>{
+          alert('✓ Subscription activated!\n\nYour videos will appear shortly. If not visible in 10 seconds, refresh the page.');
+        },
+        onError:err=>console.error('PayPal error',err)
+      }).render('#'+id);
+    } catch(e){ if(el) el.innerHTML='<p style="font-family:var(--mono);font-size:.6rem;color:var(--text3);text-align:center;padding:.5rem;">PayPal loading...</p>'; }
+  }
+  render('pp-starter','P-3E798644RY552135XNHB7LOQ');
+  render('pp-pro',    'P-8YK58417XS021451LNHB7MCY');
+}
+
+// ── CODE UNLOCK ───────────────────────────────────────────
+function toggleCodeBox() {
+  const b=document.getElementById('code-reveal');
+  b.style.display=b.style.display==='block'?'none':'block';
+}
+function unlockCode() {
+  if (!currentUser) { goTo('auth','signup'); return; }
+  const CODES={'PIXAD-STR-2025':{plan:'starter',credits:10},'PIXAD-PRO-2025':{plan:'pro',credits:40}};
+  const code=document.getElementById('code-inp').value.trim().toUpperCase();
+  const entry=CODES[code];
+  if(!entry){alert('Invalid or already used code. Check your email after subscribing.');return;}
+  sb.from('user_credits').upsert({email:currentUser.email,credits:entry.credits,plan:entry.plan,trial_used:true,updated_at:new Date().toISOString()},{onConflict:'email'})
+    .then(({error})=>{
+      if(error){alert('Error: '+error.message);return;}
+      userCredits=entry.credits; userPlan=entry.plan; userTrialUsed=true;
+      updateNavCredits(); updatePlansUI(); updateAppUI();
+      document.getElementById('code-inp').value='';
+      document.getElementById('code-reveal').style.display='none';
+      goTo('app');
+    });
+}
+
+// ── MOTIONS ───────────────────────────────────────────────
+function togM(id,el) {
+  const max=userPlan==='free'?1:999;
+  if(!sel.has(id)){
+    if(sel.size>=max){document.getElementById('up-overlay').classList.add('show');return;}
+    sel.add(id);el.classList.add('on');
+  }else{sel.delete(id);el.classList.remove('on');}
+  const c=sel.size;
+  document.getElementById('mbadge').textContent=c?c+' SELECTED':'NONE SELECTED';
+  document.getElementById('mbadge').className='badge '+(c?'b-green':'b-dim');
+  updateSum();
+}
+
+// ── PLATFORM / DURATION ───────────────────────────────────
+function preset(id,el){
+  document.querySelectorAll('.pchip').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  const p=PSETS[id];if(!p)return;
+  document.getElementById('aspect').value=p.aspect;
+  dur=p.dur;both=false;
+  document.querySelectorAll('.dpill').forEach(b=>b.classList.toggle('on',parseInt(b.dataset.v)===p.dur));
+  document.getElementById('dboth').classList.remove('on');
+  updateSum();
+}
+function selDur(el){
+  both=false;document.getElementById('dboth').classList.remove('on');
+  document.querySelectorAll('.dpill').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');dur=parseInt(el.dataset.v);updateSum();
+}
+function togBoth(){
+  both=!both;document.getElementById('dboth').classList.toggle('on',both);
+  if(both)document.querySelectorAll('.dpill').forEach(b=>b.classList.remove('on'));
+  updateSum();
+}
+function updateSum(){
+  const durs=both?[5,10]:[dur], total=sel.size*durs.length;
+  document.getElementById('sv').textContent=total;
+  document.getElementById('sm').textContent=sel.size;
+  document.getElementById('sd').textContent=both?'5S+10S':dur+'S';
+  const asp=document.getElementById('aspect');
+  if(asp)document.getElementById('sr').textContent=asp.value;
+  updateGenBtn();
+}
+
+// ── UPLOAD ────────────────────────────────────────────────
+const uz=document.getElementById('uzone'),fi=document.getElementById('fi');
+uz.addEventListener('click',()=>fi.click());
+fi.addEventListener('change',e=>{if(e.target.files[0])loadImg(e.target.files[0]);});
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('over');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('over'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('over');if(e.dataTransfer.files[0])loadImg(e.dataTransfer.files[0]);});
+function loadImg(f){
+  if(!f.type.match('image.*'))return alert('Please upload an image.');
+  if(f.size>10*1024*1024)return alert('Max 10MB.');
+  const r=new FileReader();
+  r.onload=e=>{img64=e.target.result.split(',')[1];imgSrc=e.target.result;document.getElementById('previmg').src=imgSrc;uz.style.display='none';document.getElementById('uprev').style.display='block';};
+  r.readAsDataURL(f);
+}
+function removeImg(){img64=null;imgSrc=null;fi.value='';document.getElementById('uprev').style.display='none';uz.style.display='block';}
+
+// ── AI PROMPT ─────────────────────────────────────────────
+async function genPrompt(){
+  const p=document.getElementById('pname').value.trim();
+  if(!p)return alert('Enter your product name first.');
+  const btn=document.getElementById('aibtn');btn.textContent='WRITING...';btn.disabled=true;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:100,messages:[{role:'user',content:`Write a vivid cinematic video ad prompt for: "${p}". Visual style, lighting, mood only. Under 35 words. Direct output only.`}]})});
+    const d=await r.json();const t=d.content?.[0]?.text;
+    if(t)document.getElementById('prompt').value=t.trim();
+  }catch(e){alert('Could not generate — write one manually.');}
+  btn.textContent='AI WRITE ✦';btn.disabled=false;
+}
+
+// ── GENERATE ──────────────────────────────────────────────
+async function generate(){
+  if(userPlan==='none'){goTo('plans');return;}
+  if(!img64)return alert('Upload a product image first.');
+  if(sel.size===0)return alert('Select at least one motion style.');
+  const durs=both?[5,10]:[dur], total=sel.size*durs.length;
+  if(total>userCredits){
+    document.getElementById('up-overlay').classList.add('show');return;
+  }
+  const ok=await deductCredits(total);
+  if(!ok){alert('Could not deduct credits. Please try again.');return;}
+  const plan=PLANS[userPlan];
+  const aspect=document.getElementById('aspect').value;
+  const bp=document.getElementById('prompt').value.trim()||'Professional product advertisement, cinematic style';
+  tasks=[];let idx=0;
+  for(const mid of sel)for(const d of durs)tasks.push({id:idx++,taskId:null,motionId:mid,dur:d,status:'pending',prog:0,url:null,err:null,wm:plan.wm});
+  updateAppUI();
+  document.getElementById('status-section').style.display='block';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('genbtn').disabled=true;
+  renderProg();
+  // Demo simulation — replace simulate(plan) with your real Kling API call
+  simulate(plan);
+}
+function simulate(plan){
+  let done=0;
+  tasks.forEach((task,i)=>{
+    setTimeout(()=>{patch(task.id,{status:'processing',prog:25});
+      setTimeout(()=>{patch(task.id,{prog:65});
+        setTimeout(()=>{
+          patch(task.id,{status:'done',prog:100,url:'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4'});
+          done++;document.getElementById('prog-ct').textContent=done+'/'+tasks.length;
+          if(done===tasks.length)finalize(plan);
+        },2500+i*400);
+      },1500+i*200);
+    },400+i*150);
+  });
+}
+function patch(id,obj){Object.assign(tasks[id],obj);renderProg();}
+function renderProg(){
+  document.getElementById('bprog').innerHTML=tasks.map(task=>{
+    const m=MOTIONS.find(x=>x.id===task.motionId);
+    const ico=task.status==='done'?'<div class="tick-c">✓</div>':task.status==='error'?'<div class="cross-c">✕</div>':'<div class="spin-r"></div>';
+    const msg=task.status==='done'?'COMPLETE':task.status==='error'?(task.err||'ERROR'):task.status==='pending'?'QUEUED':'GENERATING...';
+    const cls=task.status==='done'?'ok':task.status==='error'?'err':'';
+    return`<div class="trow"><img class="tthumb" src="${imgSrc}"><div class="tbody"><div class="tname">${m.icon} ${m.name.toUpperCase()} · ${task.dur}S${task.wm?' [WATERMARK]':''}</div><div class="tst ${cls}">${msg}</div><div class="ptrack"><div class="pbar" style="width:${task.prog||0}%"></div></div></div>${ico}</div>`;
+  }).join('');
+}
+function finalize(plan){
+  document.getElementById('genbtn').disabled=false;
+  const done=tasks.filter(t=>t.status==='done'&&t.url);
+  if(!done.length)return;
+  document.getElementById('res-count').textContent=done.length;
+  document.getElementById('results-section').style.display='block';
+  document.getElementById('vgrid').innerHTML=done.map(task=>{
+    const m=MOTIONS.find(x=>x.id===task.motionId);
+    const wm=task.wm?'<span class="wm-tag">WATERMARK</span>':'';
+    return`<div class="vcard"><video src="${task.url}" controls playsinline autoplay loop muted></video><div class="vfoot"><div><div class="vlbl">${m.icon} ${m.name.toUpperCase()}${wm}</div><div class="vmeta">${task.dur}S · ${document.getElementById('aspect').value} · ${plan.res}</div></div><a class="dlbtn" href="${task.url}" download="pixad-${task.motionId}-${task.dur}s.mp4">↓ SAVE</a></div></div>`;
+  }).join('');
+  document.getElementById('results-section').scrollIntoView({behavior:'smooth'});
+  if(userPlan==='free')document.getElementById('up-overlay').classList.add('show');
+}
+function resetGen(){
+  tasks=[];sel.clear();
+  document.querySelectorAll('.mtile').forEach(c=>c.classList.remove('on'));
+  document.getElementById('mbadge').textContent='NONE SELECTED';
+  document.getElementById('mbadge').className='badge b-dim';
+  document.getElementById('status-section').style.display='none';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('genbtn').disabled=false;
+  updateSum();
+}
+function closeModal(){document.getElementById('up-overlay').classList.remove('show');}
+document.getElementById('up-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+init();
+</script>
+</body>
+</html>
